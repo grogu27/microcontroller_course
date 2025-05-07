@@ -1,0 +1,33 @@
+#include <avr/io.h>
+
+int main(void) {
+    // Настраиваем пин PB5 как выход 
+    DDRB |= (1 << DDB5);
+
+    // Сброс регистров управления таймером
+    TCCR1A = 0; 
+    TCCR1B = 0;
+
+    // Включаем CTC-режим (Clear Timer on Compare Match)
+    // Режим CTC (Clear Timer on Compare Match)	0100	Считает от 0 до OCR1A, сбрасывается, флаг OCF1A
+    TCCR1B |= (1 << WGM12) | (1 << CS12); // режим CTC
+
+    // Устанавливаем значение для сравнения — 62499
+    OCR1A = 62499;
+
+    // Обнуляем сам счётчик
+    TCNT1 = 0;
+
+    while (1) {
+        // пока TCNT1 != OCR1A)
+        while ((TIFR1 & (1 << OCF1A)) == 0) {
+
+        }
+
+        // Сбрасываем флаг OCF1A записью 1 
+        TIFR1 |= (1 << OCF1A);
+
+        // мигаем светодиодом
+        PORTB ^= (1 << PORTB5);
+    }
+}
