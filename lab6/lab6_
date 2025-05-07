@@ -1,0 +1,85 @@
+#define TONE_C 1915
+#define TONE_D 1700
+#define TONE_E 1519
+#define TONE_F 1432
+#define TONE_G 1275
+#define TONE_A 1136
+#define TONE_B 1014
+#define TONE_C2 956
+#define TONE_DS 1607
+#define TONE_FS 1351
+#define TONE_GS 1204
+#define TONE_AS 1073
+#define TONE_DS2 852
+#define TONE_FS2 758
+#define TONE_GS2 676
+#define TONE_AS2 602
+
+const int speakerPin = 2;
+
+void playTone(int tonePeriod, long duration) {
+  for (long i = 0; i < duration * 1000L; i += tonePeriod * 2) {
+    digitalWrite(speakerPin, HIGH);
+    delayMicroseconds(tonePeriod);
+    digitalWrite(speakerPin, LOW);
+    delayMicroseconds(tonePeriod);
+  }
+}
+
+int main() {
+  init();
+  Serial.begin(9600);
+  pinMode(speakerPin, OUTPUT);
+
+  int pinRows[] = {7, 8, 9, 10};
+  int pinCols[] = {11, 12, 13, 6};
+
+  for (int i = 0; i < 4; i++) {
+    pinMode(pinRows[i], INPUT_PULLUP);
+    pinMode(pinCols[i], OUTPUT);
+    digitalWrite(pinCols[i], HIGH);
+  }
+
+  char keys[4][4] = {
+    {'1', '2', '3', 'A'},
+    {'4', '5', '6', 'B'},
+    {'7', '8', '9', 'C'},
+    {'*', '0', '#', 'D'}
+  };
+
+ 
+  int tones[4][4] = {
+    {TONE_C, TONE_D, TONE_E, TONE_F},
+    {TONE_G, TONE_A, TONE_B, TONE_C2},
+    {TONE_DS, TONE_FS, TONE_GS, TONE_AS},
+    {TONE_DS2, TONE_FS2, TONE_GS2, TONE_AS2}
+  };
+
+  while (true) {
+    for (int col = 0; col < 4; col++) {
+      digitalWrite(pinCols[col], LOW);
+
+      for (int row = 0; row < 4; row++) {
+        if (!digitalRead(pinRows[row])) {
+          Serial.println(keys[row][col]);
+          if(row == 1 && col == 2){
+          playTone(tones[1][1], 200);
+          playTone(tones[1][3], 200);
+          playTone(tones[2][1], 200);
+          playTone(tones[1][1], 200);
+          playTone(tones[2][2], 200);
+          playTone(tones[1][3], 200);
+          playTone(tones[2][3], 200);
+          playTone(tones[2][2], 200);
+          }
+          else
+          playTone(tones[row][col], 200); // 200 мс 
+          
+          delay(100);
+        }
+      }
+
+      digitalWrite(pinCols[col], HIGH);
+    }
+  }
+}
