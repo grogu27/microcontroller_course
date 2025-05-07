@@ -1,0 +1,92 @@
+// Подключаем библиотеки AVR и Arduino
+#include <avr/io.h>          // Работа с регистрами ввода-вывода
+#include <avr/interrupt.h>   // Работа с прерываниями
+#include <Arduino.h>         // Arduino-функции (pinMode, digitalWrite, Serial, millis)
+
+// === Константы ===
+#define JOURNAL_NUMBER    4      // Ваш номер по журналу (четный → Normal, нечётный → CTC)
+#define LED1_PIN         13      // Первая лампочка (встроенный LED на Arduino)
+#define LED2_PIN         12      // Вторая лампочка (пин 12)
+#define BUTTON_PIN        2      // Кнопка на пине D2 → внешний прерывающий INT0
+#define F_CPU_HZ     16000000UL  // Частота МК 16 МГц
+#define BLINK_FREQ        1      // Частота мигания светодиодов (1 Гц)
+#define DEBOUNCE_DELAY_MS 50     // Задержка для антидребезга (мс)
+
+// Защита от дребезга кнопки: время последнего прерывания
+volatile unsigned long last_interrupt_time = 0;
+
+// === Обработчики прерываний ===
+
+// Таймер1 переполнение (Normal mode)
+ISR(TIMER1_OVF_vect) {
+  // Переключаем первую лампочку
+  digitalWrite(LED1_PIN, !digitalRead(LED1_PIN));
+  Serial.println("TIMER1 overflow");
+}
+
+// Таймер1 совпадение с OCR1A (CTC mode)
+ISR(TIMER1_COMPA_vect) {
+  // Переключаем первую лампочку
+  digitalWrite(LED1_PIN, !digitalRead(LED1_PIN));
+  Serial.println("TIMER1 compare match A");
+}
+
+// Внешнее прерывание INT0 (кнопка на D2)
+ISR(INT0_vect) {
+  unsigned long now = millis();
+  // Антидребезг: реагируем, только если прошло > DEBOUNCE_DELAY_MS
+  if (now - last_interrupt_time > DEBOUNCE_DELAY_MS) {
+    // Переключаем вторую лампочку
+    digitalWrite(LED2_PIN, !digitalRead(LED2_PIN));
+    Serial.println("Button pressed, toggled LED2");
+    last_interrupt_time = now;
+  }
+}
+
+int main() {
+  init();
+  // --- Настройка пинов ---
+  pinMode(LED1_PIN, OUTPUT);    // LED1 как выход
+  digitalWrite(LED1_PIN, LOW);  // LED1 изначально выключен
+
+  pinMode(LED2_PIN, OUTPUT);    // LED2 как выход
+  digitalWrite(LED2_PIN, LOW);  // LED2 изначально выключен
+
+  // Кнопка на D2 (PD2)
+  DDRD &= ~(1 << DDD2);         // PD2 как вход
+  PORTD |=  (1 << PORTD2);      // Включаем внутренний pull-up
+
+  // Serial для отладки
+  Serial.begin(9600);
+
+  // --- Настройка внешнего прерывания INT0 (D2) по спаду сигнала ---
+  EICRA  |= (1 << ISC01);       // ISC01=1
+  EICRA  &= ~(1 << ISC00);      // ISC00=0 → прерывание по спаду
+  EIMSK  |= (1 << INT0);        // Разрешаем INT0
+
+  // --- Настройка Timer1 в зависимости от JOURNAL_NUMBER ---
+  TCCR1A = 0;
+  TCCR1B = 0;
+  if (JOURNAL_NUMBER % 2 == 0) {
+    // Normal mode: прерывание по переполнению
+    TCCR1B |= (1 << CS12);      // предделитель 256
+    TIMSK1 |= (1 << TOIE1);     // разрешить прерывание переполнения
+    Serial.println("Timer1: Normal mode (overflow)");
+  } else {
+    // CTC mode: прерывание по совпадению с OCR1A
+    TCCR1B |= (1 << WGM12);     // включаем CTC
+    uint32_t ocr = F_CPU_HZ / (256UL * BLINK_FREQ) - 1;
+    OCR1A = (uint16_t)ocr;      // задаём значение сравнения
+    TCCR1B |= (1 << CS12);      // предделитель 256
+    TIMSK1 |= (1 << OCIE1A);    // разрешить прерывание по совпадению A
+    Serial.println("Timer1: CTC mode (compare-match)");
+  }
+
+  // Разрешаем глобальные прерывания
+  sei();
+
+  // --- Основной цикл пуст: все действия в прерываниях ---
+  while (1) {
+    // Ничего не делаем
+  }
+}
