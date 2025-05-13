@@ -1,0 +1,135 @@
+/*
+  Полный код с manual keypad, low-level buzzer на Timer1 и без изменений
+  в части семисегментника (displayDigit остался прежним).
+  Платформа: Arduino Uno / ATmega328P @16 MHz
+*/
+
+#ifndef F_CPU
+#define F_CPU 16000000UL
+#endif
+
+#include <Arduino.h>
+#include <util/delay.h>
+
+const int segmentPins[] = {2, 3, 4, 5, 6, 7, 8};
+const int buzzerPin = 9;
+
+const byte digits[10] = {
+  0b00111111, // 0
+  0b00000110, // 1
+  0b01011011, // 2
+  0b01001111, // 3
+  0b01100110, // 4
+  0b01101101, // 5
+  0b01111101, // 6
+  0b00000111, // 7
+  0b01111111, // 8
+  0b01101111  // 9
+};
+
+const byte ROWS = 4;
+const byte COLS = 4;
+char keys[ROWS][COLS] = {
+  {'1','2','3','A'},
+  {'4','5','6','B'},
+  {'7','8','9','C'},
+  {'*','0','#','D'}
+};
+byte rowPins[ROWS] = {10, 11, 12, 13}; // строки
+byte colPins[COLS] = {A0, A1, A2, A3}; // колонки
+
+char getKey() {
+  for (int row = 0; row < ROWS; row++) {
+    digitalWrite(rowPins[row], LOW);
+    _delay_us(5);
+    for (int col = 0; col < COLS; col++) {
+      if (digitalRead(colPins[col]) == LOW) {
+        while (digitalRead(colPins[col]) == LOW);
+         _delay_us(50);
+        digitalWrite(rowPins[row], HIGH);
+        return keys[row][col];
+      }
+    }
+    digitalWrite(rowPins[row], HIGH);
+  }
+  return '\0';
+}
+
+void displayDigit(int num) {
+  byte segments = digits[num];
+  for (int i = 0; i < 7; i++) {
+    digitalWrite(segmentPins[i], (segments >> i) & 0x01);
+  }
+}
+
+void buzzer_init() {
+  DDRB |= (1 << 1); // пин 9 (PB1) как выход
+}
+
+void buzzer_tone(uint16_t freq, uint16_t duration_ms) {
+  if (freq == 0) {
+    _delay_ms(duration_ms);
+    return;
+  }
+  // CTC, toggle OC1A, prescaler=1
+  TCCR1A = (1 << COM1A0);
+  TCCR1B = (1 << WGM12) | (1 << CS10);
+  OCR1A = (uint16_t)(F_CPU / (2UL * freq) - 1);
+
+  _delay_ms(duration_ms);
+
+  // Выключаем таймер
+  TCCR1A = 0;
+  TCCR1B = 0;
+  digitalWrite(buzzerPin, LOW);
+}
+
+int main() {
+  init(); 
+
+  // Пины 2–8 (PORTD2–PORTD7 + PORTB0) как выходы для сегментов
+  for (int i = 0; i < 7; i++) {
+    if (segmentPins[i] >= 0 && segmentPins[i] <= 7) {
+      DDRD |= (1 << segmentPins[i]); // PORTD2–7
+    } else if (segmentPins[i] == 8) {
+      DDRB |= (1 << 0);              // PORTB0
+    }
+  }
+
+  // Строки клавиатуры (пины 10–13, PORTB2–5) — выходы
+  for (int i = 0; i < ROWS; i++) {
+    DDRB |= (1 << (rowPins[i] - 8));     // 10 → PB2, 11 → PB3, ...
+    PORTB |= (1 << (rowPins[i] - 8));    // установить в HIGH
+  }
+
+  // Колонки (A0–A3 = PC0–PC3) — входы с подтяжкой
+  for (int i = 0; i < COLS; i++) {
+    DDRC &= ~(1 << i);   // вход
+    PORTC |= (1 << i);   // включить подтягивающий резистор
+  }
+
+  // 3) Инициализируем buzzer
+  buzzer_init();
+
+  bool countdownStarted = false;
+  int countdownTime = -1;
+
+  while (true) {
+    char key = getKey();
+    if (key >= '0' && key <= '9') {
+      countdownTime = key - '0';
+      countdownStarted = true;
+    }
+
+    if (countdownStarted) {
+      for (int t = countdownTime; t >= 0; t--) {
+        displayDigit(t);
+        delay(1000);
+      }
+      buzzer_tone(1000, 1000);
+      countdownStarted = false;
+    }
+  }
+
+  return 0;
+}
