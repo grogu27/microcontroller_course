@@ -85,3 +85,6 @@ void setDAC(int value) {
     digitalWrite(bitPins[i], (value >> i) & 1);
   }
 }
+
+
+https://wokwi.com/projects/445571030552739841
