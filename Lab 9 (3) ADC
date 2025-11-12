@@ -1,0 +1,74 @@
+#include <Arduino.h>
+
+// Настройка АЦП
+void setupADC() {
+  ADMUX = (1 << REFS0);  // Используем питание 5V как опорное
+  ADCSRA = (1 << ADEN) | (1 << ADPS2) | (1 << ADPS1) | (1 << ADPS0); // Включить АЦП
+}
+
+// Чтение значения с АЦП
+uint16_t readADC(uint8_t channel) {
+  ADMUX = (ADMUX & 0xF0) | (channel & 0x0F); // Выбираем канал A0
+  ADCSRA |= (1 << ADSC);          // Запускаем преобразование
+  while (ADCSRA & (1 << ADSC));   // Ждём завершения
+  return ADC;                      // Возвращаем результат
+}
+
+// Настройка ЦАП (цифро-аналогового преобразователя)
+void setupDAC() {
+  // Настраиваем пины 10-13 как выходы
+  DDRB |= (1 << DDB2) | (1 << DDB3) | (1 << DDB4) | (1 << DDB5);
+  // Гарантированно выключаем все пины
+  PORTB &= ~((1 << PORTB2) | (1 << PORTB3) | (1 << PORTB4) | (1 << PORTB5));
+}
+
+// Установка значения на ЦАП
+void setDAC(uint8_t value) {
+  PORTB = (PORTB & 0xC3) | ((value & 0x0F) << 2);
+}
+
+int main() {
+  init();
+  setupADC();
+  setupDAC();
+  Serial.begin(9600);
+  
+  uint8_t dacValue = 0;
+  Serial.println("\n--- Lab3 ---\n");
+  Serial.println("DAC | ADC | Voltage");
+  Serial.println("----|-----|--------");
+  delay(1000);
+  
+  while(1) {
+    // Устанавливаем значение на ЦАП
+    setDAC(dacValue);
+    delay(50); 
+    // Читаем напряжение с АЦП
+    uint16_t adcValue = readADC(0);
+    float voltage = (adcValue * 5) / 1024.0;
+    
+    // Красивый вывод в таблицу
+    if(dacValue < 10) Serial.print(" "); // Выравнивание для однозначных чисел
+    Serial.print(dacValue);
+    Serial.print("  | ");
+    
+    if(adcValue < 100) Serial.print(" ");
+    if(adcValue < 10) Serial.print(" ");
+    Serial.print(adcValue);
+    Serial.print(" | ");
+    
+    if(voltage < 10) Serial.print(" ");
+    Serial.print(voltage, 2);
+    Serial.println(" V");
+    
+    dacValue++; // Увеличиваем значение ЦАП
+    if(dacValue > 15) {
+      dacValue = 0;
+      Serial.println("\n--- Next ---\n\n");
+      Serial.println("DAC | ADC | Voltage");
+      Serial.println("----|-----|--------");
+    }
+    
+    delay(1000);
+  }
+}
