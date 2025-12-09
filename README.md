@@ -1,4 +1,5 @@
-<img width="1258" height="990" alt="image" src="https://github.com/user-attachments/assets/441725aa-8c54-4522-bae0-afcbca9fea19" /># НОВОЕ
+<img width="1258" height="990" alt="image" src="https://github.com/user-attachments/assets/441725aa-8c54-4522-bae0-afcbca9fea19" />
+# НОВОЕ
 
 ## РГР(АКТУАЛОЧКА)
 > https://wokwi.com/projects/449853144424441857
