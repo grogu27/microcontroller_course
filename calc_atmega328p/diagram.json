@@ -1,0 +1,44 @@
+{
+  "version": 1,
+  "author": "Uri Shaked",
+  "editor": "wokwi",
+  "parts": [
+    { "type": "wokwi-arduino-uno", "id": "uno", "top": 200, "left": 20, "attrs": {} },
+    { "type": "wokwi-membrane-keypad", "id": "keypad", "top": 140, "left": 360, "attrs": {} },
+    {
+      "type": "wokwi-servo",
+      "id": "servo",
+      "top": 17.2,
+      "left": 403.2,
+      "attrs": { "hornColor": "black" }
+    },
+    { "type": "wokwi-lcd1602", "id": "lcd", "top": -15.77, "left": 16, "attrs": {} },
+    { "type": "wokwi-resistor", "id": "r1", "top": 140, "left": 220, "attrs": { "value": "220" } }
+  ],
+  "connections": [
+    [ "uno:GND.1", "lcd:VSS", "black", [ "v-51", "*", "h0", "v18" ] ],
+    [ "uno:GND.1", "lcd:K", "black", [ "v-51", "*", "h0", "v18" ] ],
+    [ "uno:GND.1", "lcd:RW", "black", [ "v-51", "*", "h0", "v18" ] ],
+    [ "uno:5V", "lcd:VDD", "red", [ "v16", "h-16" ] ],
+    [ "uno:5V", "r1:2", "red", [ "v16", "h-118", "v-244", "h50" ] ],
+    [ "r1:1", "lcd:A", "pink", [] ],
+    [ "uno:12", "lcd:RS", "blue", [ "v-16", "*", "h0", "v20" ] ],
+    [ "uno:11", "lcd:E", "purple", [ "v-20", "*", "h0", "v20" ] ],
+    [ "uno:10", "lcd:D4", "green", [ "v-24", "*", "h0", "v20" ] ],
+    [ "uno:8", "lcd:D6", "gold", [ "v-32", "*", "h0", "v20" ] ],
+    [ "uno:7", "lcd:D7", "gray", [ "v-36", "*", "h0", "v20" ] ],
+    [ "uno:5V", "servo:V+", "red", [ "v16", "h-118", "v-244", "*", "h-56" ] ],
+    [ "uno:GND.1", "servo:GND", "black", [ "v-46", "*", "v88", "h-60" ] ],
+    [ "uno:5", "keypad:R1", "blue", [ "v-34", "h96", "*", "v12" ] ],
+    [ "uno:4", "keypad:R2", "green", [ "v-30", "h80", "*", "v16" ] ],
+    [ "uno:3", "keypad:R3", "purple", [ "v-26", "h64", "*", "v20" ] ],
+    [ "uno:2", "keypad:R4", "gold", [ "v-22", "h48", "*", "v24" ] ],
+    [ "uno:A0", "keypad:C4", "green", [ "v270.9", "h299.5" ] ],
+    [ "uno:A1", "keypad:C3", "green", [ "v242.1", "h280.25" ] ],
+    [ "uno:A2", "keypad:C2", "green", [ "v251.7", "h261" ] ],
+    [ "uno:A3", "keypad:C1", "green", [ "v126.9", "h242" ] ],
+    [ "servo:PWM", "uno:9", "green", [ "h0" ] ],
+    [ "uno:6", "lcd:D5", "green", [ "v-65", "h-65" ] ]
+  ],
+  "dependencies": {}
+}
